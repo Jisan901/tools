@@ -3,73 +3,803 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Texture Editor & Image Optimizer landing page with fast batch editing, resizing, compression, and export tools.">
-  <meta name="keywords" content="texture editor,image optimizer,batch image editor,resize images,compress images,web image tool,transparent background editor">
+  <meta name="description" content="Texture Editor & Image Optimizer for batch image editing, resizing, compression, and brush-based adjustments with live preview.">
+  <meta name="keywords" content="texture editor,image optimizer,batch image editing,image compression,resize images,brush tools,web image editor">
   <meta name="robots" content="index,follow">
   <meta name="author" content="Texture Editor Team">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#111111">
+  <meta name="google-site-verification" content="RCuZyQtyfpz0siwDaYTCuosGVQVyFhpZQ1G_NB08V0Q" />
+  <link rel="canonical" href="https://Jisan901.github.io/tools/image-editor.html">
   <meta property="og:title" content="Texture Editor & Image Optimizer">
-  <meta property="og:description" content="Open a powerful browser-based image editing tool for batch optimization, resizing, compression, and brush adjustments.">
+  <meta property="og:description" content="Batch image editing and optimization tool with resize, compression, brush, and export workflows.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://Jisan901.github.io/tools">
+  <meta property="og:url" content="https://Jisan901.github.io/tools/image-editor.html">
   <meta property="og:image" content="https://avatars.githubusercontent.com/u/81457921?s=60&v=4">
+  <meta property="og:site_name" content="Texture Editor">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Texture Editor & Image Optimizer">
-  <meta name="twitter:description" content="Open a powerful browser-based image editing tool for batch optimization, resizing, compression, and brush adjustments.">
+  <meta name="twitter:description" content="Batch image editing and optimization tool with resize, compression, brush, and export workflows.">
   <meta name="twitter:image" content="https://avatars.githubusercontent.com/u/81457921?s=60&v=4">
+  <meta name="twitter:creator" content="@yourhandle">
   <title>Texture Editor & Image Optimizer</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- JSZip for Batch Download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
-    body { background: #020617; color: #e2e8f0; }
-    .hero-bg { background: radial-gradient(circle at top, rgba(59,130,246,.12), transparent 28%), radial-gradient(circle at bottom right, rgba(16,185,129,.12), transparent 25%), linear-gradient(180deg, #020617 0%, #050a1e 100%); }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    /* Checkerboard background for transparent images */
+    .checkerboard-bg {
+      background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyEgSRC0AQAK9CGVG3UW0AAAAABJRU5ErkJggg==');
+      background-repeat: repeat;
+    }
   </style>
 </head>
-<body class="hero-bg min-h-screen flex items-center justify-center px-6 py-10">
-  <main class="max-w-5xl w-full text-center">
-    <div class="max-w-3xl mx-auto rounded-3xl border border-white/10 bg-slate-950/75 p-10 shadow-2xl shadow-slate-900/50 backdrop-blur-xl">
-      <div class="mb-8">
-        <p class="uppercase text-sm tracking-[0.35em] text-cyan-300/90">Image Editing Studio</p>
-        <h1 class="mt-4 text-4xl sm:text-5xl font-semibold text-white">Texture Editor & Image Optimizer</h1>
-        <p class="mt-4 text-base sm:text-lg leading-8 text-slate-300">A browser-based tool for batch image editing, resizing, compression, brush adjustments, and export workflows. Load multiple assets, tweak visuals, and download optimized images in one place.</p>
+<body class="bg-[#111] text-gray-300 h-screen w-screen overflow-hidden font-sans antialiased select-none">
+
+  <div class="flex h-full w-full bg-[#1e1e1e]">
+    
+    <!-- LEFT SIDEBAR: CONTROLS & PANELS -->
+    <div class="w-64 border-r border-[#333] bg-[#181818] flex flex-col shrink-0 overflow-y-auto">
+      
+      <!-- Queue / Files Panel -->
+      <div class="border-b border-[#2a2a2a]">
+        <button onclick="toggleSection('fileQueueSection')" class="w-full p-2.5 flex items-center justify-between hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-2">
+            <i data-lucide="files" class="w-3.5 h-3.5 text-blue-400"></i>
+            <span class="text-xs font-semibold text-white uppercase tracking-wider">Loaded Files (<span id="fileCount">0</span>)</span>
+          </div>
+          <i id="fileQueueSection-icon" data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-400"></i>
+        </button>
+        <div id="fileQueueSection" class="p-2 flex flex-col gap-2 bg-[#141414]">
+          <div id="fileListContainer" class="max-h-40 overflow-y-auto flex flex-col gap-1 pr-1">
+            <div id="emptyQueueText" class="text-[10px] text-gray-500 text-center py-2">No files loaded</div>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-[#222]">
+            <button onclick="clearAllFiles()" class="text-[10px] text-red-400 hover:text-red-300 transition-colors">Clear All</button>
+            <label class="text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer flex items-center gap-1">
+              <i data-lucide="plus" class="w-3 h-3"></i> Add More
+              <input type="file" accept="image/*" multiple class="hidden" onchange="handleImageUpload(event)">
+            </label>
+          </div>
+        </div>
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2 mb-10">
-        <div class="p-6 rounded-3xl bg-slate-900/80 border border-white/10 text-left">
-          <h2 class="text-xl font-semibold text-white">Key Features</h2>
-          <ul class="mt-4 space-y-3 text-slate-300 text-sm leading-6">
-            <li>• Batch image upload and queue management</li>
-            <li>• Brightness, contrast, saturation, hue, blur adjustments</li>
-            <li>• Resize with aspect ratio locking</li>
-            <li>• Compression export to JPEG, WebP, or PNG</li>
-            <li>• Brush and mask tools for precise texture edits</li>
-          </ul>
-        </div>
-        <div class="p-6 rounded-3xl bg-slate-900/80 border border-white/10 text-left">
-          <h2 class="text-xl font-semibold text-white">Why use it?</h2>
-          <p class="mt-4 text-slate-300 text-sm leading-7">Perfect for game assets, UI textures, and web graphics. No install required — just open the editor, upload your artwork, and optimize images fast with preview-ready export settings.</p>
+      <!-- Adjustments Panel -->
+      <div class="border-b border-[#2a2a2a]">
+        <button onclick="toggleSection('adjustments')" class="w-full p-2.5 flex items-center justify-between hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-gray-400"></i>
+            <span class="text-xs font-semibold text-white uppercase tracking-wider">Adjustments</span>
+          </div>
+          <i id="adjustments-icon" data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-400"></i>
+        </button>
+        <div id="adjustments" class="p-3 flex flex-col gap-3 bg-[#141414]">
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Brightness</span><span id="val-brightness" class="text-white">100%</span></div>
+            <input type="range" id="brightness" min="0" max="200" value="100" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="updateFilter('brightness', this.value, '%')">
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Contrast</span><span id="val-contrast" class="text-white">100%</span></div>
+            <input type="range" id="contrast" min="0" max="200" value="100" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="updateFilter('contrast', this.value, '%')">
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Saturation</span><span id="val-saturation" class="text-white">100%</span></div>
+            <input type="range" id="saturation" min="0" max="200" value="100" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="updateFilter('saturation', this.value, '%')">
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Hue</span><span id="val-hue" class="text-white">0°</span></div>
+            <input type="range" id="hue" min="0" max="360" value="0" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="updateFilter('hue', this.value, '°')">
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Blur</span><span id="val-blur" class="text-white">0px</span></div>
+            <input type="range" id="blur" min="0" max="20" value="0" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="updateFilter('blur', this.value, 'px')">
+          </div>
+          <button onclick="applyAdjustmentsToAll()" class="w-full py-1 mt-1 bg-[#222] hover:bg-[#333] border border-[#333] rounded text-[10px] text-gray-300 transition-colors">
+            Apply Filters to All Images
+          </button>
         </div>
       </div>
 
-      <div class="flex flex-col gap-4 sm:flex-row sm:justify-center">
-        <a href="image_editor.html" class="inline-flex items-center justify-center rounded-full bg-cyan-500 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">Open Image Editor</a>
-        <a href="https://github.com/Jisan901/tools" class="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">View on GitHub</a>
+      <!-- Brush Panel -->
+      <div class="border-b border-[#2a2a2a]">
+        <button onclick="toggleSection('brush')" class="w-full p-2.5 flex items-center justify-between hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-2">
+            <i data-lucide="palette" class="w-3.5 h-3.5 text-gray-400"></i>
+            <span class="text-xs font-semibold text-white uppercase tracking-wider">Brush Settings</span>
+          </div>
+          <i id="brush-icon" data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-400"></i>
+        </button>
+        <div id="brush" class="p-3 flex flex-col gap-3 bg-[#141414]">
+          <div class="flex flex-col gap-1">
+            <span class="text-[10px] text-gray-400">Color</span>
+            <input type="color" id="brushColor" value="#ffffff" class="w-full h-6 bg-transparent rounded cursor-pointer border-0">
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Size</span><span id="val-brushSize" class="text-white">5px</span></div>
+            <input type="range" id="brushSize" min="1" max="100" value="5" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="document.getElementById('val-brushSize').innerText = this.value + 'px'">
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Falloff (Blur)</span><span id="val-brushFalloff" class="text-white">0px</span></div>
+            <input type="range" id="brushFalloff" min="0" max="50" value="0" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="document.getElementById('val-brushFalloff').innerText = this.value + 'px'">
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Opacity</span><span id="val-brushOpacity" class="text-white">100%</span></div>
+            <input type="range" id="brushOpacity" min="1" max="100" value="100" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="document.getElementById('val-brushOpacity').innerText = this.value + '%'">
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-[10px] text-gray-400">Mask / Pattern</span>
+            <select id="brushMask" class="w-full bg-[#222] border border-[#333] rounded text-[10px] text-white p-1 outline-none">
+              <option value="solid">Solid</option>
+              <option value="checkerboard">Checkerboard</option>
+              <option value="dots">Dots</option>
+              <option value="stripes">Stripes</option>
+              <option value="grid">Grid</option>
+              <option value="noise">Noise</option>
+            </select>
+          </div>
+        </div>
       </div>
+
+      <!-- Resize Panel -->
+      <div class="border-b border-[#2a2a2a]">
+        <button onclick="toggleSection('resize')" class="w-full p-2.5 flex items-center justify-between hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-2">
+            <i data-lucide="maximize" class="w-3.5 h-3.5 text-gray-400"></i>
+            <span class="text-xs font-semibold text-white uppercase tracking-wider">Resize</span>
+          </div>
+          <i id="resize-icon" data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-400"></i>
+        </button>
+        <div id="resize" class="p-3 flex flex-col gap-3 bg-[#141414]">
+          <div class="flex items-center gap-2">
+            <div class="flex flex-col gap-1 flex-1">
+              <span class="text-[10px] text-gray-400">Width</span>
+              <input type="number" id="resizeWidth" class="w-full bg-[#222] border border-[#333] rounded px-1.5 py-0.5 text-[10px] text-white outline-none focus:border-blue-500" oninput="handleWidthChange(this.value)">
+            </div>
+            <div class="flex flex-col gap-1 flex-1">
+              <span class="text-[10px] text-gray-400">Height</span>
+              <input type="number" id="resizeHeight" class="w-full bg-[#222] border border-[#333] rounded px-1.5 py-0.5 text-[10px] text-white outline-none focus:border-blue-500" oninput="handleHeightChange(this.value)">
+            </div>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="maintainAspect" checked class="w-3 h-3 bg-[#222] border border-[#333] rounded accent-blue-500">
+            <span class="text-[10px] text-gray-400">Maintain Aspect Ratio</span>
+          </label>
+          <button onclick="applyResize()" class="w-full py-1 bg-blue-600 hover:bg-blue-500 rounded text-[10px] text-white transition-colors">Apply Resize</button>
+        </div>
+      </div>
+
+      <!-- Export & Optimizer Panel -->
+      <div class="border-b border-[#2a2a2a]">
+        <button onclick="toggleSection('export')" class="w-full p-2.5 flex items-center justify-between hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-2">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-gray-400"></i>
+            <span class="text-xs font-semibold text-white uppercase tracking-wider">Batch Compression / Export</span>
+          </div>
+          <i id="export-icon" data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-400"></i>
+        </button>
+        <div id="export" class="p-3 flex flex-col gap-3 bg-[#141414]">
+          <div class="flex flex-col gap-1">
+            <span class="text-[10px] text-gray-400">Format</span>
+            <select id="exportFormat" class="w-full bg-[#222] border border-[#333] rounded text-[10px] text-white p-1 outline-none" onchange="toggleQualityControl()">
+              <option value="image/jpeg">JPEG (Compressed)</option>
+              <option value="image/webp">WebP (Optimized)</option>
+              <option value="image/png">PNG (Lossless)</option>
+            </select>
+          </div>
+          <div id="qualityContainer" class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]"><span class="text-gray-400">Quality</span><span id="val-quality" class="text-white">80%</span></div>
+            <input type="range" id="exportQuality" min="5" max="100" value="80" class="w-full h-1 bg-[#333] rounded appearance-none cursor-pointer accent-blue-500" oninput="document.getElementById('val-quality').innerText = this.value + '%'">
+          </div>
+          
+          <div class="flex flex-col gap-1.5 pt-1">
+            <button onclick="downloadActiveImage()" class="w-full py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-xs font-medium text-white transition-colors flex items-center justify-center gap-1.5">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Export Active Image
+            </button>
+            <button id="btnBatchDownload" onclick="downloadAllZip()" class="w-full py-1.5 bg-green-600 hover:bg-green-500 rounded text-xs font-medium text-white transition-colors flex items-center justify-center gap-1.5">
+              <i data-lucide="archive" class="w-3.5 h-3.5"></i> Export All as ZIP
+            </button>
+          </div>
+          <div id="exportStatus" class="text-[10px] text-center text-gray-400 hidden">Generating ZIP...</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="mt-auto p-3 flex gap-2 border-t border-[#2a2a2a]">
+        <button onclick="resetFilters()" class="flex-1 py-1.5 bg-[#222] hover:bg-[#333] border border-[#333] rounded text-xs text-white flex items-center justify-center gap-1 transition-colors">
+          <i data-lucide="refresh-cw" class="w-3 h-3"></i> Reset Filters
+        </button>
+      </div>
+
     </div>
 
-    <div class="mt-10 grid gap-4 sm:grid-cols-3">
-      <div class="rounded-3xl border border-white/10 bg-slate-900/80 p-6 text-left">
-        <p class="text-sm uppercase tracking-[0.3em] text-cyan-300/80">Optimize</p>
-        <p class="mt-3 text-base text-slate-200">Compress images without losing quality for faster web delivery.</p>
+    <!-- MAIN CANVAS AREA -->
+    <div class="flex-1 flex flex-col bg-[#0d0d0d] relative overflow-hidden">
+      
+      <!-- Top Toolbar -->
+      <div class="h-9 border-b border-[#2a2a2a] bg-[#181818] flex items-center justify-between px-3 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <label class="flex items-center gap-1 px-2 py-1 bg-[#222] hover:bg-[#333] border border-[#333] rounded text-xs text-white cursor-pointer transition-colors">
+            <i data-lucide="upload" class="w-3 h-3"></i>
+            <span>Load File(s)</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handleImageUpload(event)">
+          </label>
+          <div class="w-px h-4 bg-[#333] mx-1"></div>
+          
+          <button id="tool-pan" onclick="setTool('pan')" class="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-colors bg-blue-600 !text-white" title="Pan Tool (Hand)">
+            <i data-lucide="hand" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="tool-brush" onclick="setTool('brush')" class="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Brush Tool">
+            <i data-lucide="palette" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="tool-eraser" onclick="setTool('eraser')" class="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Eraser Tool">
+            <i data-lucide="eraser" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="flex items-center gap-1.5">
+          <button onclick="adjustZoom(0.8)" class="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Zoom Out">
+            <i data-lucide="zoom-out" class="w-3.5 h-3.5"></i>
+          </button>
+          <span id="zoomScale" class="text-[10px] text-gray-400 w-10 text-center">100%</span>
+          <button onclick="adjustZoom(1.25)" class="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Zoom In">
+            <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+          </button>
+          <button onclick="resetViewport()" class="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Reset View">
+            <i data-lucide="expand" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
       </div>
-      <div class="rounded-3xl border border-white/10 bg-slate-900/80 p-6 text-left">
-        <p class="text-sm uppercase tracking-[0.3em] text-cyan-300/80">Customize</p>
-        <p class="mt-3 text-base text-slate-200">Use sliders and brushes to refine textures and transparency effects.</p>
+
+      <!-- Drag & Drop Container -->
+      <div id="viewport" class="flex-1 overflow-hidden flex items-center justify-center p-4 checkerboard-bg relative select-none touch-none"
+           onwheel="handleWheel(event)" 
+           onpointerdown="handlePointerDown(event)" 
+           onpointermove="handlePointerMove(event)" 
+           onpointerup="handlePointerUp(event)"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleDrop(event)">
+        
+        <!-- Drop Overlay Visual -->
+        <div id="dropOverlay" class="absolute inset-0 bg-blue-600/20 border-2 border-dashed border-blue-500 z-50 flex flex-col items-center justify-center hidden pointer-events-none">
+          <i data-lucide="upload-cloud" class="w-12 h-12 text-blue-400 mb-2"></i>
+          <span class="text-sm font-semibold text-white">Drop your image(s) here</span>
+        </div>
+
+        <!-- Empty State UI -->
+        <div id="emptyState" class="flex flex-col items-center justify-center text-gray-500 pointer-events-none">
+          <i data-lucide="image" class="w-12 h-12 mb-2 opacity-30"></i>
+          <p class="text-xs font-medium text-gray-300 mb-1">No Images Loaded</p>
+          <p class="text-[10px] text-gray-500">Drag & drop image files here or click "Load File(s)"</p>
+        </div>
+
+        <!-- Transform Wrapper for Zooming/Panning -->
+        <div id="canvasWrapper" class="relative shadow-2xl border border-[#333] hidden" style="transform: translate(0px, 0px) scale(1); transform-origin: center;">
+          <canvas id="mainCanvas" class="max-w-full max-h-full block cursor-grab"></canvas>
+        </div>
       </div>
-      <div class="rounded-3xl border border-white/10 bg-slate-900/80 p-6 text-left">
-        <p class="text-sm uppercase tracking-[0.3em] text-cyan-300/80">Export</p>
-        <p class="mt-3 text-base text-slate-200">Download single edits or batch ZIP archives for quick workflows.</p>
-      </div>
+
     </div>
-  </main>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // State Variables
+    let fileQueue = []; // [{ id, name, originalImage, paths, filters, width, height }]
+    let activeFileIndex = -1;
+    let currentTool = 'pan'; // 'pan', 'brush', 'eraser'
+    
+    // Viewport State
+    let scale = 1;
+    let offset = { x: 0, y: 0 };
+    let isPanning = false;
+    let startPanPoint = { x: 0, y: 0 };
+
+    // Drawing State
+    let isDrawing = false;
+    let currentPath = null;
+
+    // Element References
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+    const emptyState = document.getElementById('emptyState');
+    const dropOverlay = document.getElementById('dropOverlay');
+
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Section Accordion Toggle
+    function toggleSection(id) {
+      const section = document.getElementById(id);
+      const icon = document.getElementById(`${id}-icon`);
+      section.classList.toggle('hidden');
+      if (icon) {
+        icon.style.transform = section.classList.contains('hidden') ? 'rotate(-90deg)' : 'rotate(0deg)';
+      }
+    }
+
+    // Default filters
+    function getDefaultFilters() {
+      return { brightness: 100, contrast: 100, saturation: 100, hue: 0, blur: 0 };
+    }
+
+    // Handle Image Upload (Multiple files supported)
+    function handleImageUpload(e) {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) loadFiles(files);
+      e.target.value = ''; // Reset input
+    }
+
+    function loadFiles(files) {
+      const imageFiles = files.filter(f => f.type.startsWith('image/'));
+      let loadedCount = 0;
+
+      imageFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const item = {
+              id: Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+              name: file.name,
+              originalImage: img,
+              paths: [],
+              filters: getDefaultFilters(),
+              width: img.width,
+              height: img.height
+            };
+            fileQueue.push(item);
+            loadedCount++;
+
+            if (activeFileIndex === -1) {
+              setActiveFile(fileQueue.length - 1);
+            } else {
+              updateQueueUI();
+            }
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function setActiveFile(index) {
+      if (index < 0 || index >= fileQueue.length) {
+        activeFileIndex = -1;
+        emptyState.classList.remove('hidden');
+        canvasWrapper.classList.add('hidden');
+        updateQueueUI();
+        return;
+      }
+
+      activeFileIndex = index;
+      const activeItem = fileQueue[activeFileIndex];
+
+      canvas.width = activeItem.width;
+      canvas.height = activeItem.height;
+      document.getElementById('resizeWidth').value = activeItem.width;
+      document.getElementById('resizeHeight').value = activeItem.height;
+
+      syncFilterControlsUI(activeItem.filters);
+      resetViewport();
+      emptyState.classList.add('hidden');
+      canvasWrapper.classList.remove('hidden');
+      
+      updateQueueUI();
+      drawAll();
+    }
+
+    function removeFile(index, e) {
+      if (e) e.stopPropagation();
+      fileQueue.splice(index, 1);
+      if (fileQueue.length === 0) {
+        setActiveFile(-1);
+      } else if (activeFileIndex >= fileQueue.length) {
+        setActiveFile(fileQueue.length - 1);
+      } else {
+        setActiveFile(activeFileIndex);
+      }
+    }
+
+    function clearAllFiles() {
+      fileQueue = [];
+      setActiveFile(-1);
+    }
+
+    function updateQueueUI() {
+      const container = document.getElementById('fileListContainer');
+      document.getElementById('fileCount').innerText = fileQueue.length;
+
+      if (fileQueue.length === 0) {
+        container.innerHTML = '<div id="emptyQueueText" class="text-[10px] text-gray-500 text-center py-2">No files loaded</div>';
+        return;
+      }
+
+      container.innerHTML = fileQueue.map((item, idx) => `
+        <div onclick="setActiveFile(${idx})" class="flex items-center justify-between p-1.5 rounded text-xs cursor-pointer ${idx === activeFileIndex ? 'bg-blue-600/30 border border-blue-500/50 text-white' : 'bg-[#1c1c1c] hover:bg-[#252525] text-gray-400'}">
+          <div class="flex items-center gap-2 truncate">
+            <span class="w-4 h-4 rounded bg-[#333] text-[9px] flex items-center justify-center font-bold shrink-0">${idx + 1}</span>
+            <span class="truncate text-[10px]">${item.name}</span>
+          </div>
+          <button onclick="removeFile(${idx}, event)" class="p-0.5 hover:text-red-400 transition-colors">
+            <i data-lucide="x" class="w-3 h-3"></i>
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // Filter Controls
+    function updateFilter(key, val, unit) {
+      if (activeFileIndex === -1) return;
+      fileQueue[activeFileIndex].filters[key] = Number(val);
+      document.getElementById(`val-${key}`).innerText = val + unit;
+      drawAll();
+    }
+
+    function syncFilterControlsUI(filters) {
+      ['brightness', 'contrast', 'saturation'].forEach(k => {
+        document.getElementById(k).value = filters[k];
+        document.getElementById(`val-${k}`).innerText = `${filters[k]}%`;
+      });
+      document.getElementById('hue').value = filters.hue;
+      document.getElementById('val-hue').innerText = `${filters.hue}°`;
+      document.getElementById('blur').value = filters.blur;
+      document.getElementById('val-blur').innerText = `${filters.blur}px`;
+    }
+
+    function resetFilters() {
+      if (activeFileIndex === -1) return;
+      fileQueue[activeFileIndex].filters = getDefaultFilters();
+      fileQueue[activeFileIndex].paths = [];
+      syncFilterControlsUI(fileQueue[activeFileIndex].filters);
+      drawAll();
+    }
+
+    function applyAdjustmentsToAll() {
+      if (activeFileIndex === -1) return;
+      const currentFilters = { ...fileQueue[activeFileIndex].filters };
+      fileQueue.forEach(f => {
+        f.filters = { ...currentFilters };
+      });
+    }
+
+    // Pattern Generator
+    function getPattern(type, color) {
+      if (type === 'solid') return color;
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = 16; pCanvas.height = 16;
+      const pCtx = pCanvas.getContext('2d');
+      pCtx.fillStyle = color;
+
+      if (type === 'checkerboard') {
+        pCtx.fillRect(0, 0, 8, 8); pCtx.fillRect(8, 8, 8, 8);
+      } else if (type === 'dots') {
+        pCtx.beginPath(); pCtx.arc(8, 8, 4, 0, Math.PI * 2); pCtx.fill();
+      } else if (type === 'stripes') {
+        pCtx.fillRect(0, 0, 16, 4); pCtx.fillRect(0, 8, 16, 4);
+      } else if (type === 'grid') {
+        pCtx.fillRect(0, 0, 16, 2); pCtx.fillRect(0, 0, 2, 16);
+      } else if (type === 'noise') {
+        for (let x = 0; x < 16; x += 2) {
+          for (let y = 0; y < 16; y += 2) {
+            if ((x * 37 + y * 13) % 5 === 0) pCtx.fillRect(x, y, 2, 2);
+          }
+        }
+      }
+      return ctx.createPattern(pCanvas, 'repeat') || color;
+    }
+
+    // Redraw Active Canvas Stack
+    function drawAll() {
+      if (activeFileIndex === -1) return;
+      const activeItem = fileQueue[activeFileIndex];
+      renderFileToCanvas(activeItem, canvas, ctx);
+    }
+
+    function renderFileToCanvas(item, targetCanvas, targetCtx) {
+      targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+      // Render base image with CSS filters
+      const f = item.filters;
+      targetCtx.filter = `brightness(${f.brightness}%) contrast(${f.contrast}%) saturate(${f.saturation}%) blur(${f.blur}px) hue-rotate(${f.hue}deg)`;
+      targetCtx.drawImage(item.originalImage, 0, 0, targetCanvas.width, targetCanvas.height);
+      targetCtx.filter = 'none';
+
+      // Render drawing paths
+      item.paths.forEach(p => renderPathToContext(p, targetCtx));
+    }
+
+    function renderPathToContext(path, targetCtx) {
+      if (path.points.length < 1) return;
+      targetCtx.save();
+      targetCtx.beginPath();
+      targetCtx.globalCompositeOperation = path.isEraser ? 'destination-out' : 'source-over';
+      targetCtx.strokeStyle = path.isEraser ? '#000' : getPattern(path.mask, path.color);
+      targetCtx.lineWidth = path.size;
+      targetCtx.globalAlpha = path.opacity / 100;
+      targetCtx.filter = path.falloff > 0 ? `blur(${path.falloff}px)` : 'none';
+      targetCtx.lineCap = 'round';
+      targetCtx.lineJoin = 'round';
+
+      targetCtx.moveTo(path.points[0].x, path.points[0].y);
+      for (let i = 1; i < path.points.length; i++) {
+        targetCtx.lineTo(path.points[i].x, path.points[i].y);
+      }
+      targetCtx.stroke();
+      targetCtx.restore();
+    }
+
+    // Tool Management
+    function setTool(tool) {
+      currentTool = tool;
+      ['pan', 'brush', 'eraser'].forEach(t => {
+        const btn = document.getElementById(`tool-${t}`);
+        if (t === tool) {
+          btn.classList.add('bg-blue-600', '!text-white');
+        } else {
+          btn.classList.remove('bg-blue-600', '!text-white');
+        }
+      });
+
+      if (tool === 'pan') {
+        canvas.className = 'max-w-full max-h-full block cursor-grab';
+      } else {
+        canvas.className = 'max-w-full max-h-full block cursor-crosshair';
+      }
+    }
+
+    // Pointer Event Handlers
+    function getCanvasCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function handlePointerDown(e) {
+      if (activeFileIndex === -1) return;
+
+      if (e.button === 1 || currentTool === 'pan') {
+        isPanning = true;
+        startPanPoint = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+        if (currentTool === 'pan') canvas.style.cursor = 'grabbing';
+        return;
+      }
+
+      if (currentTool === 'brush' || currentTool === 'eraser') {
+        isDrawing = true;
+        const pt = getCanvasCoordinates(e);
+        currentPath = {
+          points: [pt],
+          color: document.getElementById('brushColor').value,
+          size: Number(document.getElementById('brushSize').value),
+          opacity: Number(document.getElementById('brushOpacity').value),
+          falloff: Number(document.getElementById('brushFalloff').value),
+          mask: document.getElementById('brushMask').value,
+          isEraser: currentTool === 'eraser'
+        };
+        fileQueue[activeFileIndex].paths.push(currentPath);
+        drawAll();
+      }
+    }
+
+    function handlePointerMove(e) {
+      if (isPanning) {
+        offset.x = e.clientX - startPanPoint.x;
+        offset.y = e.clientY - startPanPoint.y;
+        updateTransform();
+        return;
+      }
+
+      if (isDrawing && currentPath) {
+        const pt = getCanvasCoordinates(e);
+        currentPath.points.push(pt);
+        drawAll();
+      }
+    }
+
+    function handlePointerUp() {
+      if (isPanning) {
+        isPanning = false;
+        if (currentTool === 'pan') canvas.style.cursor = 'grab';
+      }
+      isDrawing = false;
+      currentPath = null;
+    }
+
+    // Zooming & Pan Transform Logic
+    function handleWheel(e) {
+      if (activeFileIndex === -1) return;
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      adjustZoom(zoomFactor);
+    }
+
+    function adjustZoom(factor) {
+      scale = Math.max(0.1, Math.min(10, scale * factor));
+      document.getElementById('zoomScale').innerText = `${Math.round(scale * 100)}%`;
+      updateTransform();
+    }
+
+    function resetViewport() {
+      scale = 1;
+      offset = { x: 0, y: 0 };
+      document.getElementById('zoomScale').innerText = '100%';
+      updateTransform();
+    }
+
+    function updateTransform() {
+      canvasWrapper.style.transform = `translate(${offset.x}px, ${offset.y}px) scale(${scale})`;
+    }
+
+    // Resizing Logic
+    function handleWidthChange(val) {
+      if (document.getElementById('maintainAspect').checked && activeFileIndex !== -1 && val) {
+        const activeItem = fileQueue[activeFileIndex];
+        const ratio = activeItem.height / activeItem.width;
+        document.getElementById('resizeHeight').value = Math.round(val * ratio);
+      }
+    }
+
+    function handleHeightChange(val) {
+      if (document.getElementById('maintainAspect').checked && activeFileIndex !== -1 && val) {
+        const activeItem = fileQueue[activeFileIndex];
+        const ratio = activeItem.width / activeItem.height;
+        document.getElementById('resizeWidth').value = Math.round(val * ratio);
+      }
+    }
+
+    function applyResize() {
+      if (activeFileIndex === -1) return;
+      const newWidth = parseInt(document.getElementById('resizeWidth').value);
+      const newHeight = parseInt(document.getElementById('resizeHeight').value);
+      if (!newWidth || !newHeight) return;
+
+      const activeItem = fileQueue[activeFileIndex];
+      const scaleX = newWidth / activeItem.width;
+      const scaleY = newHeight / activeItem.height;
+
+      activeItem.paths = activeItem.paths.map(path => ({
+        ...path,
+        points: path.points.map(p => ({ x: p.x * scaleX, y: p.y * scaleY })),
+        size: path.size * Math.max(scaleX, scaleY)
+      }));
+
+      activeItem.width = newWidth;
+      activeItem.height = newHeight;
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+
+      drawAll();
+    }
+
+    // Drag and Drop Handling
+    function handleDragOver(e) {
+      e.preventDefault();
+      dropOverlay.classList.remove('hidden');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      if (e.relatedTarget === null || !document.getElementById('viewport').contains(e.relatedTarget)) {
+        dropOverlay.classList.add('hidden');
+      }
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      dropOverlay.classList.add('hidden');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        loadFiles(Array.from(e.dataTransfer.files));
+      }
+    }
+
+    // Export & Image Optimizer
+    function toggleQualityControl() {
+      const format = document.getElementById('exportFormat').value;
+      const container = document.getElementById('qualityContainer');
+      container.classList.toggle('hidden', format === 'image/png');
+    }
+
+    function getFormattedExtension(mimeType) {
+      if (mimeType === 'image/jpeg') return 'jpg';
+      if (mimeType === 'image/webp') return 'webp';
+      return 'png';
+    }
+
+    function downloadActiveImage() {
+      if (activeFileIndex === -1) return;
+      const format = document.getElementById('exportFormat').value;
+      const quality = Number(document.getElementById('exportQuality').value) / 100;
+      const ext = getFormattedExtension(format);
+      
+      const activeItem = fileQueue[activeFileIndex];
+      const baseName = activeItem.name.substring(0, activeItem.name.lastIndexOf('.')) || activeItem.name;
+
+      const link = document.createElement('a');
+      link.download = `${baseName}_optimized.${ext}`;
+      link.href = canvas.toDataURL(format, quality);
+      link.click();
+    }
+
+    async function downloadAllZip() {
+      if (fileQueue.length === 0) return;
+
+      const format = document.getElementById('exportFormat').value;
+      const quality = Number(document.getElementById('exportQuality').value) / 100;
+      const ext = getFormattedExtension(format);
+      const statusText = document.getElementById('exportStatus');
+      const btn = document.getElementById('btnBatchDownload');
+
+      btn.disabled = true;
+      statusText.classList.remove('hidden');
+      statusText.innerText = 'Compressing & Zipping...';
+
+      const zip = new JSZip();
+
+      for (let i = 0; i < fileQueue.length; i++) {
+        const item = fileQueue[i];
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = item.width;
+        tempCanvas.height = item.height;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        renderFileToCanvas(item, tempCanvas, tempCtx);
+
+        const dataUrl = tempCanvas.toDataURL(format, quality);
+        const base64Data = dataUrl.split(',')[1];
+        const baseName = item.name.substring(0, item.name.lastIndexOf('.')) || item.name;
+
+        zip.file(`${baseName}_compressed.${ext}`, base6464ToBlobData(base64Data, format));
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = `compressed_textures_${Date.now()}.zip`;
+      link.click();
+
+      btn.disabled = false;
+      statusText.classList.add('hidden');
+    }
+
+    function base6464ToBlobData(base64, mimeType) {
+      const byteCharacters = atob(base64);
+      const byteArrays = [];
+      for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+        const slice = byteCharacters.slice(offset, offset + 512);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+          byteNumbers[i] = slice.charCodeAt(i);
+        }
+        byteArrays.push(new Uint8Array(byteNumbers));
+      }
+      return new Blob(byteArrays, { type: mimeType });
+    }
+  </script>
 </body>
 </html>
